@@ -1,7 +1,6 @@
-import React from "react";
-import Navbar from "../components/navbar";
-import Footer from "../components/footer";
-import Hero from "../components/LandingPage/hero";
+import Navbar from "../components/Navbar.jsx";
+import Footer from "../components/Footer.jsx";
+import Hero from "../components/LandingPage/hero.jsx";
 
 export default function LandingPage() {
   return (

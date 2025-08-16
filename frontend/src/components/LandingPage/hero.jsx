@@ -1,7 +1,18 @@
-import React from "react";
-import { SignedOut, SignInButton } from "@clerk/clerk-react";
+import { useNavigate } from "react-router-dom";
+import { SignedOut, SignInButton, useAuth } from "@clerk/clerk-react";
 
 export default function Hero() {
+  const navigate = useNavigate();
+  const { isSignedIn } = useAuth();
+
+  const handleJoinMeeting = () => {
+    if (isSignedIn) {
+      navigate("/meeting");
+    } else {
+      navigate("/guest/name");
+    }
+  };
+
   return (
     <section className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto text-center">
@@ -27,6 +38,7 @@ export default function Hero() {
           <button
             className="px-6 py-3 bg-[#2563EB] text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-300 hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-[#2661EA] focus:ring-offset-2 transform hover:scale-105"
             aria-label="Join a video meeting"
+            onClick={handleJoinMeeting}
           >
             <i className="fa-solid fa-video"></i>
             Join a Meeting
