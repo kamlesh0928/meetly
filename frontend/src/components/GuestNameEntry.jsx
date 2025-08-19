@@ -53,21 +53,24 @@ export default function GuestNameEntry() {
           >
             Your Name
           </label>
-          <input
-            id="name"
-            type="text"
-            value={guestName}
-            onChange={(e) => {
-              setGuestName(e.target.value);
-              setError("");
-            }}
-            placeholder="Enter your name"
-            className={`w-full mt-2 p-3 border ${
-              error ? "border-red-300" : "border-gray-300"
-            } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2661EA] transition duration-200`}
-            aria-invalid={error ? "true" : "false"}
-            aria-describedby={error ? "name-error" : undefined}
-          />
+          <div className="relative">
+            <i className="fa-solid fa-user-plus absolute pt-2 left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input
+              id="name"
+              type="text"
+              value={guestName}
+              onChange={(e) => {
+                setGuestName(e.target.value);
+                setError("");
+              }}
+              placeholder="Enter your name"
+              className={`w-full mt-2 p-3 pl-10 border ${
+                error ? "border-red-300" : "border-gray-300"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2661EA] transition duration-200`}
+              aria-invalid={error ? "true" : "false"}
+              aria-describedby={error ? "name-error" : undefined}
+            />
+          </div>
           {error && (
             <p
               id="name-error"
