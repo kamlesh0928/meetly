@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SignedIn, SignedOut, SignIn, SignInButton, useUser } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/clerk-react";
 
 export default function Hero() {
   const [meetingName, setMeetingName] = useState("");
@@ -10,8 +10,7 @@ export default function Hero() {
   const { user } = useUser();
   const navigate = useNavigate();
 
-  const displayName =
-    user?.fullName || sessionStorage.getItem("guestName") || "Guest";
+  const displayName = user?.fullName || sessionStorage.getItem("guestName") || "Guest";
 
   // Determine subtitle based on sign-in status
   const subtitle = user
@@ -35,10 +34,10 @@ export default function Hero() {
       return;
     }
     setMeetingNameError("");
-    const newMeetingCode = generateMeetingCode();
-    sessionStorage.setItem("meetingCode", newMeetingCode);
-    navigate(`/meeting/${newMeetingCode}`, {
-      state: { meetingCode: newMeetingCode, meetingName },
+    const meetingCode = generateMeetingCode();
+    sessionStorage.setItem("meetingCode", meetingCode);
+    navigate(`/meeting/${meetingCode}`, {
+      state: { meetingCode: meetingCode, meetingName },
     });
   };
 

@@ -11,10 +11,15 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.41.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.1",
+    "@mui/material": "^7.3.1",
     "@tailwindcss/vite": "^4.1.11",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.8.0",
+    "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
