@@ -4,7 +4,7 @@ import { SignInButton } from "@clerk/clerk-react";
 
 import logo from "../assets/meetly.svg";
 
-export default function GuestNameEntry() {
+export default function GuestNameEnter() {
   const [guestName, setGuestName] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
