@@ -622,22 +622,28 @@ export default function VideoMeet() {
               ))}
             </List>
           </Popover>
-          <button
-            onClick={openChat}
-            className="relative px-3 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
-          >
-            {newMessages > 0 ? <MarkChatUnreadIcon /> : <ChatBubbleIcon />}
-            {newMessages > 0 && (
-              <span className="absolute top-0 right-0 bg-red-500 text-xs rounded-full px-1">
-                {newMessages}
-              </span>
-            )}
-          </button>
+          <Tooltip title="Chat" arrow>
+            <button
+              onClick={openChat}
+              className="relative p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
+            >
+              {newMessages > 0 ? <MarkChatUnreadIcon /> : <ChatBubbleIcon />}
+              {newMessages > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full px-1.5 py-0.5 font-bold">
+                  {newMessages}
+                </span>
+              )}
+            </button>
+          </Tooltip>
         </div>
       </div>
 
       {/* Video Grid */}
-      <div className="flex-1 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-auto bg-gray-900">
+      <div
+        className={`flex-1 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-auto bg-gray-900 ${
+          showChatModal ? "pr-96" : ""
+        }`}
+      >
         {/* Local Video */}
         <div className="relative bg-black rounded-lg overflow-hidden shadow-lg">
           <video
