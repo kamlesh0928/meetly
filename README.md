@@ -8,6 +8,11 @@ The project is developed by using Node.js, Express, Socket.IO, React.js, Tailwin
 
 ---
 
+## Live Demo
+You can access the live version of the project here: [**Meetly Live Demo**](https://meetly-frontend-3qae.onrender.com)
+
+---
+
 ## Features
 -   **Real-time Video & Audio:** High-quality, low latency communication using WebRTC.
 -   **Secure & Private Rooms:** Create unique room IDs for private conversations.
