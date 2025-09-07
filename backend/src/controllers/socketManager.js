@@ -15,8 +15,6 @@ export const initializeServer = (server) => {
   });
 
   io.on("connection", (socket) => {
-    console.log(`New connection: ${socket.id}`);
-
     socket.on("join-call", (path) => {
       if (!connections[path]) {
         connections[path] = [];
@@ -27,7 +25,6 @@ export const initializeServer = (server) => {
       }
       timeOnline[socket.id] = new Date();
 
-      // Notify all clients in the room about the updated participant list
       io.to(path).emit("user-joined", socket.id, connections[path]);
 
       // Send existing messages to the new client
@@ -41,10 +38,6 @@ export const initializeServer = (server) => {
           );
         });
       }
-
-      console.log(
-        `User ${socket.id} joined room ${path}. Total: ${connections[path].length}`
-      );
     });
 
     socket.on("signal", (toId, message) => {
@@ -67,8 +60,6 @@ export const initializeServer = (server) => {
         };
         messages[path].push(message);
 
-        console.log(`Message from ${sender} in room ${path}: ${data}`);
-
         connections[path].forEach((clientId) => {
           io.to(clientId).emit("chat-message", data, sender, socket.id);
         });
@@ -77,7 +68,6 @@ export const initializeServer = (server) => {
 
     socket.on("disconnect", () => {
       const diffTime = Math.abs(new Date() - timeOnline[socket.id]);
-      console.log(`User ${socket.id} disconnected after ${diffTime}ms`);
 
       let path;
       for (const [room, clients] of Object.entries(connections)) {

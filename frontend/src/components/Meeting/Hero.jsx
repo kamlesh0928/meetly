@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/clerk-react";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 export default function Hero() {
   const [meetingName, setMeetingName] = useState("");
@@ -10,7 +11,8 @@ export default function Hero() {
   const { user } = useUser();
   const navigate = useNavigate();
 
-  const displayName = user?.fullName || sessionStorage.getItem("guestName") || "Guest";
+  const displayName =
+    user?.fullName || sessionStorage.getItem("guestName") || "Guest";
 
   // Determine subtitle based on sign-in status
   const subtitle = user
@@ -58,6 +60,10 @@ export default function Hero() {
     navigate("/");
   };
 
+  const handleGoToHistory = () => {
+    navigate("/history");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 pt-20">
       <div className="max-w-4xl mx-auto text-center">
@@ -71,7 +77,6 @@ export default function Hero() {
 
         {/* Meeting Cards */}
         <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-10">
-          {/* Create Meeting Card or Sign-In Prompt */}
           <SignedIn>
             <div className="w-full sm:w-[28rem] bg-white rounded-xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl">
               <div className="flex justify-center items-center bg-[#DBEAFE] rounded-full w-12 h-12 mx-auto">
@@ -210,14 +215,29 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Back to Home Button */}
-        <button
-          onClick={handleBackToHome}
-          className="mt-6 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg font-medium transition-all duration-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2661EA] focus:ring-offset-2"
-          aria-label="Go back to home page"
-        >
-          Back to Home
-        </button>
+        <div className="mt-3">
+          <h3 className="text-lg font-semibold text-gray-900 text-center mb-4">
+            Quick Actions
+          </h3>
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={handleGoToHistory}
+              className="mt-6 px-4 py-2 gap-2 text-gray-700 border border-gray-300 rounded-lg font-medium transition-all duration-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2661EA] focus:ring-offset-2 flex items-center"
+              aria-label="Go to history page"
+            >
+              <AccessTimeIcon />
+              Meeting History
+            </button>
+
+            <button
+              onClick={handleBackToHome}
+              className="mt-6 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg font-medium transition-all duration-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2661EA] focus:ring-offset-2"
+              aria-label="Go back to home page"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

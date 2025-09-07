@@ -3,9 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import LandingPage from "./pages/landingPage";
 import MeetingPage from "./pages/meeting";
+import VideoMeet from "./pages/videoMeet";
+import History from "./pages/history";
 
 import GuestNameEnter from "./components/GuestNameEnter";
-import VideoMeet from "./components/VideoMeet/VideoMeet";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/meeting" element={<MeetingPage />} />
         <Route path="/guest/name" element={<GuestNameEnter />} />
         <Route path="/meeting/:meetingId" element={<VideoMeet />} />
+        <Route path="/history" element={<History />} />
       </Routes>
     </Router>
   );

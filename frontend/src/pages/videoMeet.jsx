@@ -2,28 +2,11 @@ import React, { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 import { useUser } from "@clerk/clerk-react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import MarkChatUnreadIcon from "@mui/icons-material/MarkChatUnread";
-import CallEndIcon from "@mui/icons-material/CallEnd";
-import ScreenShareIcon from "@mui/icons-material/ScreenShare";
-import StopScreenShareIcon from "@mui/icons-material/StopScreenShare";
-import MicIcon from "@mui/icons-material/Mic";
-import MicOffIcon from "@mui/icons-material/MicOff";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import VideocamOffIcon from "@mui/icons-material/VideocamOff";
-import PeopleIcon from "@mui/icons-material/People";
-import ShareIcon from "@mui/icons-material/Share";
-import CloseIcon from "@mui/icons-material/Close";
-import SendIcon from "@mui/icons-material/Send";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
-import Tooltip from "@mui/material/Tooltip";
-import Popover from "@mui/material/Popover";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemText from "@mui/material/ListItemText";
-import ListItemIcon from "@mui/material/ListItemIcon";
+import Header from "../components/VideoMeet/Header";
+import VideoGrid from "../components/VideoMeet/VideoGrid";
+import Controls from "../components/VideoMeet/Controls";
+import ChatModal from "../components/VideoMeet/ChatModal";
+import SnackbarAlert from "../components/VideoMeet/SnackbarAlert";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -65,7 +48,7 @@ export default function VideoMeet() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [participantsAnchorEl, setParticipantsAnchorEl] = useState(null);
-  const [participants, setParticipants] = useState([username]); // Dummy list, enhance with real data if available
+  const [participants, setParticipants] = useState([username]); 
 
   const getUserMediaSuccess = (stream) => {
     try {
@@ -530,6 +513,14 @@ export default function VideoMeet() {
     }
   };
 
+  const formatTimestamp = (date) => {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date);
+  };
+
   useEffect(() => {
     connectToSocketServer();
     return () => {
@@ -563,297 +554,57 @@ export default function VideoMeet() {
     }
   }, [messages]);
 
-  const formatTimestamp = (date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    }).format(date);
-  };
-
   return (
     <div className="h-screen bg-gray-900 text-white flex flex-col">
-      {/* Header */}
-      <div className="h-16 flex items-center justify-between px-6 bg-gray-800 shadow-md">
-        <div className="flex items-center space-x-4">
-          <span className="text-lg font-semibold tracking-tight">
-            {meetingName || "Meeting"}
-          </span>
-          <span className="text-sm text-gray-300">ID: {meetingId || ""}</span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={handleInvite}
-            className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition"
-          >
-            <ShareIcon fontSize="small" />
-            <span className="text-sm">Invite</span>
-          </button>
-          <Tooltip title="View participants" arrow>
-            <button
-              onClick={handleParticipantsClick}
-              className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
-            >
-              <PeopleIcon fontSize="small" />
-              <span className="text-sm">{participantsCount}</span>
-            </button>
-          </Tooltip>
-          <Popover
-            open={openParticipants}
-            anchorEl={participantsAnchorEl}
-            onClose={handleParticipantsClose}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "center",
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "center",
-            }}
-          >
-            <List dense>
-              {participants.map((participant, index) => (
-                <ListItem key={index}>
-                  <ListItemIcon>
-                    <AccountCircleIcon />
-                  </ListItemIcon>
-                  <ListItemText primary={participant} />
-                </ListItem>
-              ))}
-            </List>
-          </Popover>
-          <Tooltip title="Chat" arrow>
-            <button
-              onClick={openChat}
-              className="relative p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
-            >
-              {newMessages > 0 ? <MarkChatUnreadIcon /> : <ChatBubbleIcon />}
-              {newMessages > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full px-1.5 py-0.5 font-bold">
-                  {newMessages}
-                </span>
-              )}
-            </button>
-          </Tooltip>
-        </div>
-      </div>
-
-      {/* Video Grid */}
-      <div
-        className={`flex-1 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-auto bg-gray-900 ${
-          showChatModal ? "pr-96" : ""
-        }`}
-      >
-        {/* Local Video */}
-        <div className="relative bg-black rounded-lg overflow-hidden shadow-lg">
-          <video
-            ref={localVideoRef}
-            autoPlay
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-          />
-          {!hasLocalVideo && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-              <AccountCircleIcon
-                style={{ fontSize: 100 }}
-                className="text-gray-500"
-              />
-            </div>
-          )}
-          <div className="absolute bottom-2 left-2 bg-gray-900 bg-opacity-70 px-2 py-1 rounded text-sm">
-            You ({username})
-          </div>
-          {!hasLocalAudio && (
-            <div className="absolute top-2 right-2 bg-red-600 rounded-full p-1">
-              <MicOffIcon fontSize="small" />
-            </div>
-          )}
-        </div>
-
-        {/* Remote Videos */}
-        {videos.map((video, index) => (
-          <div
-            key={index}
-            className="relative bg-black rounded-lg overflow-hidden shadow-lg"
-          >
-            {video.stream && video.hasVideo ? (
-              <video
-                srcObject={video.stream}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                <AccountCircleIcon
-                  style={{ fontSize: 100 }}
-                  className="text-gray-500"
-                />
-              </div>
-            )}
-            <div className="absolute bottom-2 left-2 bg-gray-900 bg-opacity-70 px-2 py-1 rounded text-sm">
-              Participant
-            </div>
-            {!video.hasAudio && (
-              <div className="absolute top-2 right-2 bg-red-600 rounded-full p-1">
-                <MicOffIcon fontSize="small" />
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Controls */}
-      <div className="h-20 flex justify-center items-center space-x-6 bg-gray-800 shadow-md">
-        <button
-          onClick={handleAudioToggle}
-          disabled={!audioAvailable && !audioEnabled}
-          className={`p-3 rounded-full transition ${
-            audioEnabled
-              ? "bg-gray-700 hover:bg-gray-600"
-              : "bg-red-600 hover:bg-red-500"
-          } ${
-            !audioAvailable && !audioEnabled
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          }`}
-        >
-          {audioEnabled ? (
-            <MicIcon fontSize="large" />
-          ) : (
-            <MicOffIcon fontSize="large" />
-          )}
-        </button>
-        <button
-          onClick={handleVideoToggle}
-          disabled={!videoAvailable && !videoEnabled}
-          className={`p-3 rounded-full transition ${
-            videoEnabled
-              ? "bg-gray-700 hover:bg-gray-600"
-              : "bg-red-600 hover:bg-red-500"
-          } ${
-            !videoAvailable && !videoEnabled
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          }`}
-        >
-          {videoEnabled ? (
-            <VideocamIcon fontSize="large" />
-          ) : (
-            <VideocamOffIcon fontSize="large" />
-          )}
-        </button>
-        <button
-          onClick={handleScreenToggle}
-          disabled={!screenAvailable && !screenEnabled}
-          className={`p-3 rounded-full transition ${
-            screenEnabled
-              ? "bg-green-600 hover:bg-green-500"
-              : "bg-gray-700 hover:bg-gray-600"
-          } ${
-            !screenAvailable && !screenEnabled
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          }`}
-        >
-          {screenEnabled ? (
-            <StopScreenShareIcon fontSize="large" />
-          ) : (
-            <ScreenShareIcon fontSize="large" />
-          )}
-        </button>
-        <button
-          onClick={handleEndCall}
-          className="p-3 rounded-full bg-red-600 hover:bg-red-500 transition"
-        >
-          <CallEndIcon fontSize="large" />
-        </button>
-      </div>
-
-      {/* Chat Modal */}
-      {showChatModal && (
-        <div className="fixed right-0 top-16 bottom-20 w-96 bg-gray-800 shadow-lg flex flex-col rounded-l-lg">
-          <div className="flex justify-between items-center p-4 bg-gray-700 rounded-tl-lg">
-            <span className="font-semibold text-lg">Chat</span>
-            <button
-              onClick={closeChat}
-              className="text-gray-300 hover:text-white"
-            >
-              <CloseIcon />
-            </button>
-          </div>
-          <div
-            ref={chatContainerRef}
-            className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-900"
-          >
-            {messages.length > 0 ? (
-              messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex flex-col ${
-                    msg.socketIdSender === socketIdRef.current
-                      ? "items-end"
-                      : "items-start"
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-400">
-                      {msg.sender}{" "}
-                      <span className="text-xs">
-                        ({formatTimestamp(msg.timestamp)})
-                      </span>
-                    </span>
-                  </div>
-                  <span
-                    className={`inline-block p-3 rounded-lg max-w-[80%] ${
-                      msg.socketIdSender === socketIdRef.current
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-200"
-                    }`}
-                  >
-                    {msg.data}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-500 text-center">No messages yet</div>
-            )}
-          </div>
-          <div className="p-4 bg-gray-800 border-t border-gray-700 flex items-center space-x-2">
-            <input
-              type="text"
-              value={message}
-              onChange={handleMessageChange}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="Type a message..."
-              className="flex-1 bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!message.trim()}
-              className="bg-blue-600 p-2 rounded-lg hover:bg-blue-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <SendIcon />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Snackbar for invite */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={handleSnackbarClose}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity="success"
-          sx={{ width: "100%" }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+      <Header
+        meetingName={meetingName}
+        meetingId={meetingId}
+        handleInvite={handleInvite}
+        participantsCount={participantsCount}
+        handleParticipantsClick={handleParticipantsClick}
+        participantsAnchorEl={participantsAnchorEl}
+        handleParticipantsClose={handleParticipantsClose}
+        openParticipants={openParticipants}
+        participants={participants}
+        openChat={openChat}
+        newMessages={newMessages}
+      />
+      <VideoGrid
+        showChatModal={showChatModal}
+        localVideoRef={localVideoRef}
+        hasLocalVideo={hasLocalVideo}
+        hasLocalAudio={hasLocalAudio}
+        username={username}
+        videos={videos}
+      />
+      <Controls
+        audioAvailable={audioAvailable}
+        audioEnabled={audioEnabled}
+        handleAudioToggle={handleAudioToggle}
+        videoAvailable={videoAvailable}
+        videoEnabled={videoEnabled}
+        handleVideoToggle={handleVideoToggle}
+        screenAvailable={screenAvailable}
+        screenEnabled={screenEnabled}
+        handleScreenToggle={handleScreenToggle}
+        handleEndCall={handleEndCall}
+      />
+      <ChatModal
+        showChatModal={showChatModal}
+        closeChat={closeChat}
+        chatContainerRef={chatContainerRef}
+        messages={messages}
+        socketIdRef={socketIdRef}
+        formatTimestamp={formatTimestamp}
+        message={message}
+        handleMessageChange={handleMessageChange}
+        sendMessage={sendMessage}
+      />
+      <SnackbarAlert
+        snackbarOpen={snackbarOpen}
+        handleSnackbarClose={handleSnackbarClose}
+        snackbarMessage={snackbarMessage}
+      />
     </div>
   );
 }
