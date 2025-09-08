@@ -21,3 +21,13 @@ You can access the live version of the project here: [**Meetly Live Demo**](http
 -   **Peer-to-Peer Connection:** Direct connection between users for enhanced privacy and performance.
 
 ---
+
+## Contributing
+Contributions are welcome! If you'd like to contribute, please fork the repository and create a pull request.
+
+---
+
+## License
+This project is licensed under the MIT License. Please see the [LICENSE](LICENSE) file for more information.
+
+---
