@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Clock,
@@ -13,86 +13,145 @@ import {
 } from "lucide-react";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import { useUser } from "@clerk/clerk-react";
+import axios from "axios";
+
+const VITE_SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 export default function Hero() {
   const navigate = useNavigate();
-  const [allMeetings, setAllMeetings] = useState([
-    {
-      meetingName: "Project",
-      meetingId: "abcdef",
-      createdAt: "2023-10-01T10:00:00Z",
-      isEnded: true,
-      totalParticipants: 5,
-      duration: 30,
-      endedAt: "2023-10-01T10:30:00Z",
-      isHost: true,
-    },
-    {
-      meetingName: "Project 2",
-      meetingId: "abcddf",
-      createdAt: "2024-10-01T10:00:00Z",
-      isEnded: false,
-      totalParticipants: 3,
-      duration: 0,
-      endedAt: null,
-      isHost: false,
-    },
-  ]);
+  const { user, isSignedIn } = useUser();
 
+  const [allMeetings, setAllMeetings] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  const handleRejoinMeeting = (meetingId) => {
-    navigate(`/meeting/${meetingId}`);
+  const handleRejoinMeeting = async (meetingCode) => {
+    if (isSignedIn) {
+      try {
+        const response = await axios.post(
+          `${VITE_SERVER_URL}/api/rejoin-meeting`,
+          {
+            email: user.emailAddresses[0].emailAddress,
+            meetingCode: meetingCode,
+          }
+        );
+
+        if (response.status === 200) {
+          console.log("Rejoined Meeting successfully");
+        }
+      } catch (error) {
+        console.log("Error in rejoining meeting:", error);
+      }
+    } else {
+      const payload = {
+        meetingCode,
+        meetingName: "Untitled Meeting",
+        isHost: false,
+        isGuest: true,
+        startTime: new Date(),
+        endTime: null,
+        isEnded: false,
+      };
+
+      if (!sessionStorage.getItem("meetings")) {
+        sessionStorage.setItem("meetings", JSON.stringify([payload]));
+      } else {
+        let existingMeetings = JSON.parse(sessionStorage.getItem("meetings"));
+        const meetingIndex = existingMeetings.findIndex((m) => m.meetingCode === meetingCode);
+        if (meetingIndex !== -1) {
+          existingMeetings[meetingIndex].startTime = new Date();
+          existingMeetings[meetingIndex].isEnded = false;
+          existingMeetings[meetingIndex].endTime = null;
+        } else {
+          existingMeetings.push(payload);
+        }
+        sessionStorage.setItem("meetings", JSON.stringify(existingMeetings));
+      }
+    }
+
+    navigate(`/meeting/${meetingCode}`);
   };
 
-  const handleCopyMeetingId = (meetingId) => {
-    navigator.clipboard.writeText(meetingId);
+  const handleCopyMeetingCode = (meetingCode) => {
+    navigator.clipboard.writeText(meetingCode);
     setSnackbarOpen(true);
   };
 
-  const formatDuration = (minutes) => {
-    if (minutes === 0 || !minutes) return "N/A";
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInDays = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffInDays === 0) {
-      return `Today at ${date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`;
-    } else if (diffInDays === 1) {
-      return `Yesterday at ${date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`;
-    } else if (diffInDays < 7) {
-      return `${diffInDays} days ago`;
+  const handleDelete = async () => {
+    if (isSignedIn) {
+      if (showDeleteConfirm === "all") {
+        try {
+          const response = await axios.delete(
+            `${VITE_SERVER_URL}/api/delete-all-meetings`,
+            {
+              data: { email: user.emailAddresses[0].emailAddress },
+            }
+          );
+          if (response.status === 200) {
+            setAllMeetings([]);
+          }
+        } catch (error) {
+          console.log("Error in deleting all meetings:", error);
+        }
+      } else {
+        try {
+          const response = await axios.delete(
+            `${VITE_SERVER_URL}/api/delete-meeting`,
+            {
+              data: {
+                email: user.emailAddresses[0].emailAddress,
+                meetingCode: showDeleteConfirm,
+              },
+            }
+          );
+          if (response.status === 200) {
+            setAllMeetings((prev) =>
+              prev.filter((m) => m.meetingCode !== showDeleteConfirm)
+            );
+          }
+        } catch (error) {
+          console.log("Error in deleting meeting:", error);
+        }
+      }
     } else {
-      return date.toLocaleDateString();
+      if (showDeleteConfirm === "all") {
+        sessionStorage.removeItem("meetings");
+        setAllMeetings([]);
+      } else {
+        const updatedMeetings = allMeetings.filter(
+          (m) => m.meetingCode !== showDeleteConfirm
+        );
+        sessionStorage.setItem("meetings", JSON.stringify(updatedMeetings));
+        setAllMeetings(updatedMeetings);
+      }
     }
-  };
 
-  const handleDelete = () => {
-    if (showDeleteConfirm === "all") {
-      setAllMeetings([]);
-    } else {
-      setAllMeetings((prev) =>
-        prev.filter((m) => m.meetingId !== showDeleteConfirm)
-      );
-    }
     setShowDeleteConfirm(null);
   };
+
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      if (isSignedIn) {
+        try {
+          const response = await axios.get(
+            `${VITE_SERVER_URL}/api/get-meetings`,
+            {
+              params: { email: user.emailAddresses[0].emailAddress },
+            }
+          );
+          setAllMeetings(response.data.meetings);
+        } catch (error) {
+          console.log("Error in fetching meetings:", error);
+        }
+      } else {
+        const meetings = JSON.parse(sessionStorage.getItem("meetings")) || [];
+        setAllMeetings(meetings);
+      }
+    };
+
+    fetchMeetings();
+  }, [setAllMeetings, isSignedIn, user]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -155,7 +214,7 @@ export default function Hero() {
               meetings
             </p>
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/meeting")}
               className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg transition-all duration-300 hover:bg-blue-700"
             >
               Start Your First Meeting
@@ -163,100 +222,112 @@ export default function Hero() {
           </div>
         ) : (
           <div className="space-y-4">
-            {allMeetings.map((meeting) => {
-              const status = meeting.isEnded ? "completed" : "ongoing";
-              const role = meeting.isHost ? "host" : "participant";
-              return (
-                <div
-                  key={meeting.meetingId}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {meeting.meetingName}
-                        </h3>
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            status === "ongoing"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {status === "ongoing" ? "Ongoing" : "Completed"}
-                        </span>
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            role === "host"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-purple-100 text-purple-800"
-                          }`}
-                        >
-                          {role === "host" ? "Host" : "Participant"}
-                        </span>
-                      </div>
+            {[...allMeetings]
+              .sort((a, b) => new Date(b.startTime) - new Date(a.startTime))
+              .map((meeting) => {
+                const status = meeting.isEnded || meeting.endTime ? "completed" : "ongoing";
+                const role = meeting.isHost ? "host" : "participant";
 
-                      <div className="flex items-center space-x-6 text-sm text-gray-600 mb-3">
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>{formatDate(meeting.createdAt)}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Users className="w-4 h-4" />
-                          <span>
-                            {meeting.totalParticipants} participant
-                            {meeting.totalParticipants !== 1 ? "s" : ""}
+                const displayDate = meeting.date || (meeting.startTime ? new Date(meeting.startTime).toISOString().split('T')[0] : 'Unknown');
+
+                let durationDisplay = "Ongoing";
+                if (meeting.endTime) {
+                  const start = new Date(meeting.startTime);
+                  const end = new Date(meeting.endTime);
+                  if (!isNaN(start) && !isNaN(end)) {
+                    const diffMs = end - start;
+                    const totalMinutes = Math.floor(diffMs / 60000);
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    durationDisplay = `${hours > 0 ? `${hours}h ` : ''}${minutes}m`;
+                  } else {
+                    durationDisplay = "Unknown";
+                  }
+                }
+
+                return (
+                  <div
+                    key={meeting.meetingCode}
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {meeting.meetingName}
+                          </h3>
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              status === "ongoing"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {status === "ongoing" ? "Ongoing" : "Completed"}
+                          </span>
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              role === "host"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-purple-100 text-purple-800"
+                            }`}
+                          >
+                            {role === "host" ? "Host" : "Participant"}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            Duration:{" "}
-                            {status === "ongoing"
-                              ? "Ongoing"
-                              : formatDuration(meeting.duration)}
-                          </span>
+
+                        <div className="flex items-center space-x-6 text-sm text-gray-600 mb-3">
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>{displayDate}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              Duration: {durationDisplay}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-sm text-gray-500">
+                          Meeting ID:{" "}
+                          <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+                            {meeting.meetingCode}
+                          </code>
                         </div>
                       </div>
 
-                      <div className="text-sm text-gray-500">
-                        Meeting ID:{" "}
-                        <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                          {meeting.meetingId}
-                        </code>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 ml-4">
-                      <button
-                        className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
-                        onClick={() => handleCopyMeetingId(meeting.meetingId)}
-                      >
-                        <CopyIcon className="w-5 h-5" />
-                      </button>
-
-                      {status === "ongoing" && (
+                      <div className="flex items-center space-x-2 ml-4">
                         <button
-                          className="flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-                          onClick={() => handleRejoinMeeting(meeting.meetingId)}
+                          className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                          onClick={() => handleCopyMeetingCode(meeting.meetingCode)}
                         >
-                          <Play className="w-4 h-4 mr-2" />
-                          Rejoin
+                          <CopyIcon className="w-5 h-5" />
                         </button>
-                      )}
 
-                      <button
-                        className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 transition-colors"
-                        onClick={() => setShowDeleteConfirm(meeting.meetingId)}
-                      >
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                        {status === "ongoing" && (
+                          <button
+                            className="flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                            onClick={() =>
+                              handleRejoinMeeting(meeting.meetingCode)
+                            }
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Rejoin
+                          </button>
+                        )}
+
+                        <button
+                          className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 transition-colors"
+                          onClick={() => setShowDeleteConfirm(meeting.meetingCode)}
+                        >
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         )}
 

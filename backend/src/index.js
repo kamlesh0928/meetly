@@ -6,6 +6,8 @@ import cors from "cors";
 
 import { initializeServer } from "./controllers/socketManager.js";
 
+import userRoutes from "./routes/users.routes.js";
+
 dotenv.config();
 
 const app = express();
@@ -15,9 +17,17 @@ const server = createServer(app);
 const io = initializeServer(server);
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL,
+    methods: ["GET", "POST", "DELETE", "PUT"],
+  })
+);
 app.use(express.json({ limit: "40kb" }));
 app.use(express.urlencoded({ extended: true, limit: "40kb" }));
+
+// Routes
+app.use("/api", userRoutes);
 
 // Set default port
 const PORT = process.env.PORT || 8000;

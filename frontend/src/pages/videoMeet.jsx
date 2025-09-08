@@ -7,15 +7,16 @@ import VideoGrid from "../components/VideoMeet/VideoGrid";
 import Controls from "../components/VideoMeet/Controls";
 import ChatModal from "../components/VideoMeet/ChatModal";
 import SnackbarAlert from "../components/VideoMeet/SnackbarAlert";
+import axios from "axios";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+const VITE_SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 const peerConfigConnections = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
 export default function VideoMeet() {
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const username =
     user?.fullName || sessionStorage.getItem("guestName") || "Guest";
 
@@ -48,7 +49,7 @@ export default function VideoMeet() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [participantsAnchorEl, setParticipantsAnchorEl] = useState(null);
-  const [participants, setParticipants] = useState([username]); 
+  const [participants, setParticipants] = useState([username]);
 
   const getUserMediaSuccess = (stream) => {
     try {
@@ -244,7 +245,7 @@ export default function VideoMeet() {
   };
 
   const connectToSocketServer = () => {
-    socketRef.current = io.connect(SERVER_URL, { secure: false });
+    socketRef.current = io.connect(VITE_SERVER_URL, { secure: false });
     socketRef.current.on("connect", () => {
       socketIdRef.current = socketRef.current.id;
       console.log(`Connected with socket ID: ${socketIdRef.current}`);
@@ -441,10 +442,36 @@ export default function VideoMeet() {
     setScreenEnabled(!screenEnabled);
   };
 
-  const handleEndCall = () => {
+  const handleEndCall = async () => {
     try {
       if (window.localStream) {
         window.localStream.getTracks().forEach((track) => track.stop());
+      }
+
+      if (isSignedIn) {
+        try {
+          const response = await axios.post(
+            `${VITE_SERVER_URL}/api/end-meeting`,
+            {
+              email: user.emailAddresses[0].emailAddress,
+              meetingCode: meetingId,
+            }
+          );
+
+          if (response.status === 200) {
+            console.log("Meeting ended successfully");
+          }
+        } catch (error) {
+          console.log("Error in ending meeting:", error);
+        }
+      } else {
+        const payload = sessionStorage.getItem("meetings") || [];
+        const updatedMeetings = JSON.parse(payload).map((meeting) =>
+          meeting.meetingCode === meetingId
+            ? { ...meeting, endTime: new Date(), isEnded: true }
+            : meeting
+        );
+        sessionStorage.setItem("meetings", JSON.stringify(updatedMeetings));
       }
     } catch (error) {
       console.error("Error stopping stream:", error);

@@ -2,13 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/clerk-react";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import axios from "axios";
+
+const VITE_SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 export default function Hero() {
   const [meetingName, setMeetingName] = useState("");
   const [meetingCode, setMeetingCode] = useState("");
   const [meetingNameError, setMeetingNameError] = useState("");
   const [meetingCodeError, setMeetingCodeError] = useState("");
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const navigate = useNavigate();
 
   const displayName =
@@ -30,20 +33,38 @@ export default function Hero() {
     return code;
   };
 
-  const handleCreateMeeting = () => {
+  const handleCreateMeeting = async () => {
     if (meetingName.trim() && meetingName.length < 3) {
       setMeetingNameError("Meeting name must be at least 3 characters long");
       return;
     }
+
     setMeetingNameError("");
+
     const meetingCode = generateMeetingCode();
-    sessionStorage.setItem("meetingCode", meetingCode);
+
+    try {
+      const response = await axios.post(`${VITE_SERVER_URL}/api/add-meeting`, {
+        email: user.emailAddresses[0].emailAddress,
+        meetingCode,
+        meetingName: meetingName.trim() || "Untitled Meeting",
+        isHost: true,
+        isGuest: false,
+      });
+
+      if (response.status === 201) {
+        console.log("Meeting created successfully");
+      }
+    } catch (error) {
+      console.log("Error in starting meeting:", error);
+    }
+
     navigate(`/meeting/${meetingCode}`, {
       state: { meetingCode: meetingCode, meetingName },
     });
   };
 
-  const handleJoinMeeting = () => {
+  const handleJoinMeeting = async () => {
     if (!meetingCode.trim()) {
       setMeetingCodeError("Please enter a meeting code");
       return;
@@ -52,7 +73,50 @@ export default function Hero() {
       setMeetingCodeError("Meeting code must be exactly 6 characters");
       return;
     }
+
+    sessionStorage.setItem("meetingCode", meetingCode);
     setMeetingCodeError("");
+
+    if (isSignedIn) {
+      try {
+        const response = await axios.post(
+          `${VITE_SERVER_URL}/api/add-meeting`,
+          {
+            email: user.emailAddresses[0].emailAddress,
+            meetingCode,
+            meetingName: meetingName.trim() || "Untitled Meeting",
+            isHost: true,
+            isGuest: false,
+          }
+        );
+
+        if (response.status === 201) {
+          console.log("Joined Meeting successfully");
+        }
+      } catch (error) {
+        console.log("Error in joining meeting:", error);
+      }
+    } else {
+      const payload = [
+        {
+          meetingCode,
+          meetingName: meetingName.trim() || "Untitled Meeting",
+          isHost: false,
+          isGuest: true,
+          startTime: new Date(),
+          endTime: null,
+          isEnded: false,
+        },
+      ];
+      if (!sessionStorage.getItem("meetings")) {
+        sessionStorage.setItem("meetings", JSON.stringify(payload));
+      } else {
+        const existingMeetings = JSON.parse(sessionStorage.getItem("meetings"));
+        existingMeetings.push(...payload);
+        sessionStorage.setItem("meetings", JSON.stringify(existingMeetings));
+      }
+    }
+
     navigate(`/meeting/${meetingCode}`);
   };
 
@@ -87,7 +151,7 @@ export default function Hero() {
                   Create Meeting
                 </h2>
                 <p className="mt-2 text-base text-gray-600 text-center">
-                  Start a new meeting and invite others to join
+                  Start a new meeting and invite others to <br /> join
                 </p>
               </div>
               <div className="mt-4">
